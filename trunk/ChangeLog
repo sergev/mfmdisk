@@ -1,0 +1,73 @@
+2008-04-17 13:18  vak
+
+	* ChangeLog, src/amiga.c, src/ibmpc.c, src/main.c, src/mfm.h:
+	  Сделана запись индесного маркера.
+
+2008-04-16 20:04  vak
+
+	* src/: ibmpc.c, main.c, mfm.c, mfm.h: Исправлена
+	  запись маркеров A1: теперь с
+	  нарушением кодирования, как
+	  положено.
+
+2008-04-16 16:23  vak
+
+	* AUTHORS, ChangeLog, src/ibmpc.c, src/main.c, src/mfm.c,
+	  src/mfm.h: Добавлен режим --dump - выдача
+	  сырого битового потока.  Улучшена
+	  печать отладочной информации.
+
+2008-04-15 18:50  vak
+
+	* ChangeLog, src/amiga.c, src/ibmpc.c: Добавлены
+	  комментарии.
+
+2008-04-15 17:56  vak
+
+	* ChangeLog, src/amiga.c, src/ibmpc.c, src/main.c, src/mfm.c,
+	  src/mfm.h, src/raw.c: Реализовано создание
+	  MFM-файлов форматов IBM PC и БК-0010.
+
+2008-04-14 22:23  vak
+
+	* src/: amiga.c, ibmpc.c, main.c, mfm.h: Добавлен
+	  режим выдачи информации о формате
+	  MFM-файла.
+
+2008-04-11 12:40  vak
+
+	* ChangeLog, src/Makefile.am, src/Makefile.in, src/amiga.c,
+	  src/ibmpc.c, src/mfm.c, src/raw.c, src/read.c, src/write.c:
+	  Исправлено декодирование блока
+	  данных для amiga.  Более устойчиво
+	  распознавание ibmpc/amiga.  Добавлена
+	  проверка номеров дорожек в каждом
+	  секторе.
+
+2008-04-11 00:54  vak
+
+	* ChangeLog, src/ibmpc.c: Сделана проверка
+	  контрольной суммы для формата IBM PC.
+
+2008-04-10 22:16  vak
+
+	* ChangeLog, src/amiga.c, src/ibmpc.c, src/main.c, src/mfm.h,
+	  src/read.c: Сделана проверка
+	  контрольной суммы для формата Amiga.
+
+2008-04-10 21:30  vak
+
+	* configure, configure.ac, src/Makefile.am, src/Makefile.in,
+	  src/amiga.c, src/ibmpc.c, src/main.c, src/mfm.h, src/mfmdisk.c,
+	  src/read.c, src/write.c: Добавлена поддержка
+	  формата Amiga.
+
+2008-04-10 18:15  vak
+
+	* AUTHORS, COPYING, ChangeLog, INSTALL, Makefile.am, Makefile.in,
+	  NEWS, README, aclocal.m4, config.h.in, configure, configure.ac,
+	  depcomp, install-sh, missing, src/Makefile.am, src/Makefile.in,
+	  src/mfmdisk.c: Первая версия. Умеет
+	  извлекать образы флопов 720к и 800к из
+	  файлов MFM.
+
