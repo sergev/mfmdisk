@@ -154,19 +154,28 @@ void mfm_fill_track (mfm_writer_t *writer, int val)
 void mfm_dump (FILE *fin, int ntracks)
 {
 	mfm_reader_t reader;
-	int t, i, b;
+	int t, i, a, b, last_b;
 
 	for (t=0; t<ntracks; ++t) {
 		mfm_read_seek (&reader, fin, t);
+		a = b = last_b = 0;
 		fprintf (mfm_err, "Track %d/%d:\n", t >> 1, t & 1);
 		for (i=0;; ++i) {
 			if (mfm_verbose)
 				b = mfm_read_halfbit (&reader);
-			else
-				b = mfm_read_bit (&reader);
+			else {
+				last_b = b;
+				a = mfm_read_halfbit (&reader);
+				b = mfm_read_halfbit (&reader);
+				if (! a && ! b && last_b)
+					a = 1;
+			}
 			if (b < 0)
 				break;
-			fprintf (mfm_err, "%d", b);
+			if (mfm_verbose || a != b)
+				fprintf (mfm_err, "%d", b);
+			else
+				fprintf (mfm_err, b ? "#" : "_");
 			if ((i & 63) == 63)
 				fprintf (mfm_err, "\n");
 		}
