@@ -105,7 +105,8 @@ int mfm_scan_ibmpc (mfm_reader_t *reader, int *nbits_read)
 		bit = mfm_read_bit (reader);
 		if (bit < 0) {
 			if (mfm_verbose && nbits_read)
-				fprintf (mfm_err, "Track final gap: %d bits\n",
+				fprintf (mfm_err, "Track %d/%d: final gap %d bits\n",
+					reader->track >> 1, reader->track & 1,
 					*nbits_read);
 			return -1;
 		}
@@ -179,6 +180,7 @@ ident:		cylinder = mfm_read_byte (reader);
 			fprintf (mfm_err, "Track %d/%d: header sum %04x, expected %04x\n",
 				reader->track >> 1, reader->track & 1,
 				my_header_sum, header_sum);
+			continue;
 		}
 		track = cylinder * 2 + head;
 		if (track != reader->track) {
@@ -247,7 +249,7 @@ void mfm_read_ibmpc (mfm_disk_t *d, FILE *fin, int ntracks)
 				break;
 			if (s >= d->nsectors_per_track) {
 				fprintf (mfm_err, "Track %d/%d: too large sector number %d\n",
-					t >> 1, t & 1, s);
+					t >> 1, t & 1, s + 1);
 				continue;
 			}
 			/* Сектора могут следовать в произвольном порядке. */
@@ -289,6 +291,7 @@ void mfm_analyze_ibmpc (FILE *fin, int ntracks)
 
 	fprintf (mfm_err, "Format: IBM PC\n");
 	for (t=0; t<ntracks; ++t) {
+		fprintf (mfm_err, "\n");
 		mfm_read_seek (&reader, fin, t);
 		for (s=0; s<MAXSECT; ++s)
 			have_sector [s] = 0;
@@ -317,7 +320,7 @@ void mfm_analyze_ibmpc (FILE *fin, int ntracks)
 
 		fprintf (mfm_err, "Order of sectors:");
 		for (s=0; s<i; ++s) {
-			fprintf (mfm_err, " %d", order_of_sectors[s]);
+			fprintf (mfm_err, " %d", order_of_sectors[s] + 1);
 		}
 		fprintf (mfm_err, "\n");
 
@@ -337,7 +340,7 @@ void mfm_analyze_ibmpc (FILE *fin, int ntracks)
 		/* Проверим, что получили все сектора. */
 		for (s=0; s<nsectors_per_track; ++s) {
 			if (! have_sector [s])
-				fprintf (mfm_err, "No sector %d\n", s);
+				fprintf (mfm_err, "No sector %d\n", s + 1);
 		}
 		if (! mfm_verbose)
 			break;
