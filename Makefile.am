@@ -7,4 +7,5 @@ distclean-local:
 	-rm -rf autom4te.cache
 
 log:
-	cvs2cl
+	svn update
+	svn log > ChangeLog
