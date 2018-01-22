@@ -168,6 +168,9 @@ int mfm_read_sector_amiga (mfm_reader_t *reader, unsigned char *data)
 		label[1] = read_long (reader, &my_header_sum);
 		label[2] = read_long (reader, &my_header_sum);
 		label[3] = read_long (reader, &my_header_sum);
+		if (mfm_verbose)
+			fprintf (mfm_err, "Track %d, sector %d: label %08lx:%08lx:%08lx:%08lx\n",
+				track, sector, label[0], label[1], label[2], label[3]);
 
 		header_sum = mfm_read_byte (reader) << 24;
 		header_sum |= mfm_read_byte (reader) << 16;
