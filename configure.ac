@@ -5,7 +5,7 @@ AC_PREREQ(2.61)
 AC_INIT([mfmdisk], [0.1], [serge@vak.ru])
 AM_INIT_AUTOMAKE(mfmdisk, 0.1, no-define)
 AC_CONFIG_SRCDIR([src/main.c])
-AC_CONFIG_HEADER([config.h])
+AC_CONFIG_HEADER(config.h)
 AC_CONFIG_FILES([Makefile src/Makefile])
 
 # Checks for programs.
