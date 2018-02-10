@@ -1,29 +1,56 @@
-#define MAXTRACK    160
-#define MAXSECT     11
-#define SECTSZ      512
+/*
+ * Read/write MFM floppy image.
+ *
+ * Copyright (C) 2008-2018 Serge Vakulenko
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *   1. Redistributions of source code must retain the above copyright notice,
+ *      this list of conditions and the following disclaimer.
+ *   2. Redistributions in binary form must reproduce the above copyright
+ *      notice, this list of conditions and the following disclaimer in the
+ *      documentation and/or other materials provided with the distribution.
+ *   3. The name of the author may not be used to endorse or promote products
+ *      derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
+ * EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+#define MAXTRACK        160
+#define MAXSECT         11
+#define SECTSZ          512
 
-#define INDEX_GAP   42  /* before first sector */
-#define DATA_GAP    22  /* between sector mark and data */
-#define SECTOR_GAP_9    80  /* 720k, 9 sectors per track */
-#define SECTOR_GAP_10   46  /* 800k, 10 sectors per track */
+#define INDEX_GAP       42      /* before first sector */
+#define DATA_GAP        22      /* between sector mark and data */
+#define SECTOR_GAP_9    80      /* 720k, 9 sectors per track */
+#define SECTOR_GAP_10   46      /* 800k, 10 sectors per track */
 
 typedef struct {
-    int ntracks;            /* 80 или 160 */
+    int ntracks;                /* 80 или 160 */
     int nsectors_per_track;     /* 9..11 */
     unsigned char block [MAXTRACK] [MAXSECT] [SECTSZ];
 } mfm_disk_t;
 
 typedef struct {
     FILE *fd;
-    int track;          /* 0..159 */
-    int halfbit;            /* 0..102400 */
+    int track;                  /* 0..159 */
+    int halfbit;                /* 0..102400 */
     int byte;
 } mfm_reader_t;
 
 typedef struct {
     FILE *fd;
     int last;
-    int halfbit;            /* 0..102400 */
+    int halfbit;                /* 0..102400 */
     int byte;
 } mfm_writer_t;
 
