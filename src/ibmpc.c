@@ -360,8 +360,6 @@ void mfm_analyze_ibmpc(FILE *fin, int ntracks)
             if (! have_sector [s])
                 fprintf(mfm_err, "No sector %d\n", s + 1);
         }
-        if (! mfm_verbose)
-            break;
     }
 }
 

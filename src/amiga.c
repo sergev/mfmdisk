@@ -26,6 +26,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "config.h"
 #include "mfm.h"
@@ -52,17 +53,25 @@ static unsigned long shuffle(int odd, int even)
 /*
  * Поиск идентификатора сектора на дискете формата Amiga.
  */
-int mfm_scan_amiga(mfm_reader_t *reader)
+int mfm_scan_amiga(mfm_reader_t *reader, int *nbits_read)
 {
     int bit, tag;
     unsigned long history;
 
     history = 0;
+    if (nbits_read)
+        *nbits_read = 0;
     for (;;) {
         bit = mfm_read_bit(reader);
-        if (bit < 0)
+        if (bit < 0) {
+            if (mfm_verbose && nbits_read)
+                fprintf(mfm_err, "Track %d/%d: final gap %d bits\n",
+                    reader->track >> 1, reader->track & 1, *nbits_read);
             return -1;
+        }
         history = history << 1 | bit;
+        if (nbits_read)
+            ++*nbits_read;
 
         if ((history & 0xffffffff) == 0xffffffff) {
             /* Все единицы - подсинхронизовываемся на полубит. */
@@ -169,14 +178,19 @@ static int read_data(mfm_reader_t *reader, unsigned char *data)
 /*
  * Чтение очередного сектора с дискеты формата Amiga.
  */
-int mfm_read_sector_amiga(mfm_reader_t *reader, unsigned char *data)
+int mfm_read_sector_amiga(mfm_reader_t *reader, unsigned char *data,
+    int *sector_gap)
 {
-    int tag, track, sector, odd, even;
+    int tag, track, sector, odd, even, gap;
     unsigned long label[4], header_sum, data_sum;
     unsigned long my_header_sum, my_data_sum;
 
+    if (sector_gap)
+        *sector_gap = 0;
     for (;;) {
-        tag = mfm_scan_amiga(reader);
+        tag = mfm_scan_amiga(reader, &gap);
+        if (sector_gap)
+            *sector_gap += gap;
         if (tag < 0)
             return -1;
         odd = (tag << 8) | mfm_read_byte(reader);
@@ -241,7 +255,7 @@ void mfm_read_amiga(mfm_disk_t *d, FILE *fin, int ntracks)
         for (s=0; s<MAXSECT; ++s)
             have_sector [s] = 0;
         for (;;) {
-            s = mfm_read_sector_amiga(&reader, block);
+            s = mfm_read_sector_amiga(&reader, block, 0);
             if (s < 0)
                 break;
             if (s >= d->nsectors_per_track) {
@@ -268,8 +282,59 @@ void mfm_read_amiga(mfm_disk_t *d, FILE *fin, int ntracks)
  */
 void mfm_analyze_amiga(FILE *fin, int ntracks)
 {
+    int t, s, i, nsectors_per_track;
+    mfm_reader_t reader;
+    unsigned char block [SECTSZ];
+    int have_sector [MAXSECT];
+    int order_of_sectors [MAXSECT];
+    int sector_gap [MAXSECT];
+
     fprintf(mfm_err, "Format: Amiga\n");
-    /* TODO */
+    for (t=0; t<ntracks; ++t) {
+        fprintf(mfm_err, "\n");
+        mfm_read_seek(&reader, fin, t);
+        for (s=0; s<MAXSECT; ++s)
+            have_sector [s] = 0;
+        nsectors_per_track = 0;
+        for (i=0; ; ++i) {
+            s = mfm_read_sector_amiga(&reader, block, &sector_gap[i]);
+            if (s < 0)
+                break;
+            if (s >= MAXSECT) {
+                fprintf(mfm_err, "Too many sectors per track = %d, aborted.\n",
+                    s+1);
+                exit(-1);
+            }
+            if (s >= nsectors_per_track)
+                nsectors_per_track = s + 1;
+
+            /* Сектора могут следовать в произвольном порядке. */
+            have_sector [s] = 1;
+            order_of_sectors [i] = s;
+        }
+        fprintf(mfm_err, "Track %d/%d: %d sectors per track\n",
+            t >> 1, t & 1, nsectors_per_track);
+        if (nsectors_per_track < 1)
+            continue;
+
+        fprintf(mfm_err, "Order of sectors:");
+        for (s=0; s<i; ++s) {
+            fprintf(mfm_err, " %d", order_of_sectors[s] + 1);
+        }
+        fprintf(mfm_err, "\n");
+
+        fprintf(mfm_err, "Sector gap:");
+        for (s=0; s<i; ++s) {
+            fprintf(mfm_err, " %d", sector_gap[s] - 5*8);
+        }
+        fprintf(mfm_err, " bits (std %d)\n", 0);
+
+        /* Проверим, что получили все сектора. */
+        for (s=0; s<nsectors_per_track; ++s) {
+            if (! have_sector [s])
+                fprintf(mfm_err, "No sector %d\n", s + 1);
+        }
+    }
 }
 
 /*

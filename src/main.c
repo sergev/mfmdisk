@@ -179,9 +179,9 @@ int main(int argc, char **argv)
         fin = open_input(argv[optind]);
 
         if (mfm_detect_amiga(fin))
-            mfm_analyze_amiga(fin, MAXTRACK);
+            mfm_analyze_amiga(fin, mfm_verbose ? MAXTRACK : 1);
         else
-            mfm_analyze_ibmpc(fin, MAXTRACK);
+            mfm_analyze_ibmpc(fin, mfm_verbose ? MAXTRACK : 1);
         break;
 
     case ACTION_DUMP:
