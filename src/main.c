@@ -31,6 +31,7 @@
 #include <getopt.h>
 #include "config.h"
 #include "mfm.h"
+#include "scp.h"
 
 enum {
     ACTION_INFO,
@@ -49,7 +50,7 @@ void usage()
     printf("Usage:\n");
     printf("    mfmdisk [-i] input.mfm\n");
     printf("    mfmdisk -x input.mfm output.img\n");
-    printf("    mfmdisk -c output.mfm [input.img]\n");
+    printf("    mfmdisk -c output.mfm [input.img | input.scp]\n");
     printf("\n");
 
     printf("Options:\n");
@@ -217,6 +218,13 @@ int main(int argc, char **argv)
 
         if (argc >= 2) {
             /* Read image from file. */
+            char *ext = strrchr(argv[1], '.');
+
+            if (ext && strcasecmp(ext, ".scp") == 0) {
+                /* Convert SCP file into MFM format. */
+                scp_write_mfm(argv[1], fout, 0/*TODO*/);
+                break;
+            }
             fin = open_input(argv[1]);
             mfm_read_raw(&disk, fin, nsectors_per_track);
         } else {
