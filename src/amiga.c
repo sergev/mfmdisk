@@ -35,7 +35,7 @@
  * Первый аргумент содержит нечётные биты 32-битного слова,
  * второй - чётные биты. Возвращаем значение исходного слова.
  */
-static unsigned long shuffle(int odd, int even)
+static unsigned long unshuffle(int odd, int even)
 {
     unsigned long word;
     int i;
@@ -48,6 +48,24 @@ static unsigned long shuffle(int odd, int even)
         even <<= 1;
     }
     return word;
+}
+
+/*
+ * Разбиваем слово на нечётные и чётные биты.
+ */
+static void shuffle(unsigned long word, int *odd, int *even)
+{
+    int i;
+
+    *odd = 0;
+    *even = 0;
+    for (i=0; i<16; i++) {
+        *odd <<= 1;
+        *even <<= 1;
+        *odd |= (word >> 31) & 1;
+        *even |= (word >> 30) & 1;
+        word <<= 2;
+    }
 }
 
 /*
@@ -140,7 +158,7 @@ static unsigned long read_long(mfm_reader_t *reader, unsigned long *sum)
     even = mfm_read_byte(reader) << 8;
     even |= mfm_read_byte(reader);
     *sum ^= odd ^ even;
-    return shuffle(odd, even);
+    return unshuffle(odd, even);
 }
 
 /*
@@ -165,7 +183,7 @@ static int read_data(mfm_reader_t *reader, unsigned char *data)
     /* Восстанавливаем данные. */
     sum = 0;
     for (i=0; i<SECTSZ/4; ++i) {
-        ldata = shuffle(odd[i], even[i]);
+        ldata = unshuffle(odd[i], even[i]);
         sum ^= odd[i] ^ even[i];
         *data++ = ldata >> 24;
         *data++ = ldata >> 16;
@@ -196,7 +214,7 @@ int mfm_read_sector_amiga(mfm_reader_t *reader, unsigned char *data,
         odd = (tag << 8) | mfm_read_byte(reader);
         even = mfm_read_byte(reader) << 8;
         even |= mfm_read_byte(reader);
-        tag = shuffle(odd, even) & 0xffffff;
+        tag = unshuffle(odd, even) & 0xffffff;
         track = tag >> 16;
         sector = tag >> 8 & 0xff;
         my_header_sum = odd ^ even;
@@ -338,10 +356,122 @@ void mfm_analyze_amiga(FILE *fin, int ntracks)
 }
 
 /*
+ * Записываем маркер идентификатора, с нарушением правил MFM.
+ */
+static void write_marker(mfm_writer_t *writer)
+{
+    int i;
+
+    /* Два байта нулей. */
+    mfm_write_byte(writer, 0);
+    mfm_write_byte(writer, 0);
+
+    /* Два байта A1 с нарушением кодирования в шестом бите. */
+    for (i=0; i<2; ++i) {
+        mfm_write_bit(writer, 1);
+        mfm_write_bit(writer, 0);
+        mfm_write_bit(writer, 1);
+        mfm_write_bit(writer, 0);
+        mfm_write_bit(writer, 0);
+        mfm_write_halfbit(writer, 0);
+        mfm_write_halfbit(writer, 0);
+        mfm_write_bit(writer, 0);
+        mfm_write_bit(writer, 1);
+    }
+}
+
+/*
+ * Записываем идентификатор и его контрольную сумму.
+ */
+static void write_ident(mfm_writer_t *writer, int t, int s)
+{
+    int sum, i, odd, even;
+    unsigned long ldata;
+
+    /* Compute identifier and checksum. */
+    ldata = 0xff << 24;
+    ldata |= t << 16;
+    ldata |= s << 8;
+    ldata |= 11-s;
+    shuffle(ldata, &odd, &even);
+    sum = odd ^ even;
+
+    /* Write identifier. */
+    mfm_write_byte(writer, odd >> 8);
+    mfm_write_byte(writer, odd);
+    mfm_write_byte(writer, even >> 8);
+    mfm_write_byte(writer, even);
+
+    /* Write label. */
+    for (i=0; i<16; ++i) {
+        mfm_write_byte(writer, 0);
+    }
+
+    /* Write checksum. */
+    mfm_write_byte(writer, sum >> 24);
+    mfm_write_byte(writer, sum >> 16);
+    mfm_write_byte(writer, sum >> 8);
+    mfm_write_byte(writer, sum);
+}
+
+/*
+ * Запись 512-байтного блока с перестановкой битов.
+ * Перед блоком записывается 4 байта контрольной суммы.
+ */
+static void write_sector(mfm_writer_t *writer, unsigned char *data)
+{
+    unsigned long ldata;
+    int odd [128], even [128], sum, i;
+
+    /* Shuffle data, compute checksum. */
+    sum = 0;
+    for (i=0; i<SECTSZ/4; ++i) {
+        ldata = data[4*i] << 24;
+        ldata |= data[4*i+1] << 16;
+        ldata |= data[4*i+2] << 8;
+        ldata |= data[4*i+3];
+        shuffle(ldata, &odd[i], &even[i]);
+        sum ^= odd[i] ^ even[i];
+    }
+
+    /* Write checksum. */
+    mfm_write_byte(writer, sum >> 24);
+    mfm_write_byte(writer, sum >> 16);
+    mfm_write_byte(writer, sum >> 8);
+    mfm_write_byte(writer, sum);
+
+    /* Write data, odd bits first. */
+    for (i=0; i<SECTSZ/4; ++i) {
+        mfm_write_byte(writer, odd[i] >> 8);
+        mfm_write_byte(writer, odd[i]);
+    }
+    for (i=0; i<SECTSZ/4; ++i) {
+        mfm_write_byte(writer, even[i] >> 8);
+        mfm_write_byte(writer, even[i]);
+    }
+}
+
+/*
  * Записываем MFM-образ флоппи-диска в формате Amiga.
  */
 void mfm_write_amiga(mfm_disk_t *d, FILE *fout)
 {
-    fprintf(mfm_err, "Writing Amiga floppies not implemented yet, sorry.\n");
-    /* TODO */
+    mfm_writer_t writer;
+    int t, s;
+
+    if (mfm_verbose)
+        fprintf(mfm_err, "Creating %d tracks, %d sectors per track\n",
+            d->ntracks, d->nsectors_per_track);
+
+    for (t=0; t<d->ntracks; ++t) {
+        mfm_write_reset(&writer, fout);
+        mfm_write_gap(&writer, 150, 0);
+
+        for (s=0; s<d->nsectors_per_track; ++s) {
+            write_marker(&writer);
+            write_ident(&writer, t, s);
+            write_sector(&writer, d->block[t][s]);
+        }
+        mfm_fill_track(&writer, 0);
+    }
 }

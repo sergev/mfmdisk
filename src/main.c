@@ -108,17 +108,17 @@ FILE *open_output(char *filename)
 int main(int argc, char **argv)
 {
     static struct option longopts[] = {
-        /* option        has arg    integer code */
-        { "help",       0, 0,   'h'     },
-        { "version",        0, 0,   'V'     },
-        { "info",       0, 0,   'i'     },
-        { "extract",        0, 0,   'x'     },
-        { "create",     0, 0,   'c'     },
-        { "dump",       0, 0,   'd'     },
-        { "amiga",      0, 0,   'a'     },
-        { "bk",         0, 0,   'b'     },
+        /* option             has arg  integer code */
+        { "help",               0, 0,   'h'     },
+        { "version",            0, 0,   'V'     },
+        { "info",               0, 0,   'i'     },
+        { "extract",            0, 0,   'x'     },
+        { "create",             0, 0,   'c'     },
+        { "dump",               0, 0,   'd'     },
+        { "amiga",              0, 0,   'a'     },
+        { "bk",                 0, 0,   'b'     },
         { "sectors-per-track",  0, 0,   's'     },
-        { 0,            0, 0,   0       },
+        { 0,                    0, 0,   0       },
     };
     int c;
     FILE *fin, *fout;
@@ -169,14 +169,16 @@ int main(int argc, char **argv)
             break;
         }
     }
+    argc -= optind;
+    argv += optind;
 
     switch (action) {
     default:
     case ACTION_INFO:
         /* Выдача информации о файле MFM. */
-        if (optind != argc-1)
+        if (argc != 1)
             usage();
-        fin = open_input(argv[optind]);
+        fin = open_input(argv[0]);
 
         if (mfm_detect_amiga(fin))
             mfm_analyze_amiga(fin, mfm_verbose ? MAXTRACK : 1);
@@ -186,18 +188,18 @@ int main(int argc, char **argv)
 
     case ACTION_DUMP:
         /* Выдача битового содержимого файла MFM. */
-        if (optind != argc-1)
+        if (argc != 1)
             usage();
-        fin = open_input(argv[optind]);
+        fin = open_input(argv[0]);
         mfm_dump(fin, MAXTRACK);
         break;
 
     case ACTION_EXTRACT:
         /* Извлечение данных из файла MFM. */
-        if (optind != argc-2)
+        if (argc != 2)
             usage();
-        fin = open_input(argv[optind]);
-        fout = open_output(argv[optind+1]);
+        fin = open_input(argv[0]);
+        fout = open_output(argv[1]);
 
         if (amiga || mfm_detect_amiga(fin))
             mfm_read_amiga(&disk, fin, MAXTRACK);
@@ -209,12 +211,19 @@ int main(int argc, char **argv)
 
     case ACTION_CREATE:
         /* Создание файла MFM. */
-        if (optind < argc-2 || optind > argc-1)
+        if (argc < 1 || argc > 2)
             usage();
-        fout = open_output(argv[optind]);
-        fin = open_input(argv[optind+1]);
+        fout = open_output(argv[0]);
 
-        mfm_read_raw(&disk, fin, nsectors_per_track);
+        if (argc >= 2) {
+            /* Read image from file. */
+            fin = open_input(argv[1]);
+            mfm_read_raw(&disk, fin, nsectors_per_track);
+        } else {
+            /* Empty disk. */
+            disk.ntracks = 160;
+            disk.nsectors_per_track = nsectors_per_track;
+        }
 
         if (! mfm_index_gap)
             mfm_index_gap = INDEX_GAP;
