@@ -380,8 +380,9 @@ void scp_write_mfm(const char *name, FILE *fout, int rev)
             /* Decode flux data of this revolution. */
             pll_t pll;
 
-            pll_init(&pll, &sf, rev);
             scp_reset(&sf);
+            pll_init(&pll, &sf, rev);
+            pll_next_bit(&pll); /* Ignore first half-bit. */
             n = 0;
             do {
                 int halfbit = pll_next_bit(&pll);
@@ -391,9 +392,9 @@ void scp_write_mfm(const char *name, FILE *fout, int rev)
 
             /* Fill the rest of track. */
             while (n++ < 12800*8) {
-                mfm_write_halfbit(&writer, 0);
+                mfm_write_halfbit(&writer, !writer.last);
                 if (n++ < 12800*8)
-                    mfm_write_halfbit(&writer, 1);
+                    mfm_write_halfbit(&writer, !writer.last);
             }
         }
     }
