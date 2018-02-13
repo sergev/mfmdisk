@@ -50,7 +50,8 @@ void usage()
     printf("Usage:\n");
     printf("    mfmdisk [-i] input.mfm\n");
     printf("    mfmdisk -x input.mfm output.img\n");
-    printf("    mfmdisk -c output.mfm [input.img | input.scp]\n");
+    printf("    mfmdisk -c output.mfm input.img\n");
+    printf("    mfmdisk -c [-r N] output.mfm input.scp\n");
     printf("\n");
 
     printf("Options:\n");
@@ -61,6 +62,8 @@ void usage()
     printf("    -v, --verbose      verbose mode\n");
     printf("    -a, --amiga        use Amiga format (default IBM PC)\n");
     printf("    -b, --bk           use BK-0010 format\n");
+    printf("    -r N, --revolution=N\n");
+    printf("                       decode N-th revolution, default 0\n");
     printf("    -s N, --sectors-per-track=N\n");
     printf("                       use N sectors per track\n");
     exit(-1);
@@ -109,7 +112,7 @@ FILE *open_output(char *filename)
 int main(int argc, char **argv)
 {
     static struct option longopts[] = {
-        /* option             has arg  integer code */
+        /* option         has arg       integer code */
         { "help",               0, 0,   'h'     },
         { "version",            0, 0,   'V'     },
         { "info",               0, 0,   'i'     },
@@ -118,7 +121,8 @@ int main(int argc, char **argv)
         { "dump",               0, 0,   'd'     },
         { "amiga",              0, 0,   'a'     },
         { "bk",                 0, 0,   'b'     },
-        { "sectors-per-track",  0, 0,   's'     },
+        { "sectors-per-track",  1, 0,   's'     },
+        { "revolution",         1, 0,   'r'     },
         { 0,                    0, 0,   0       },
     };
     int c;
@@ -127,10 +131,11 @@ int main(int argc, char **argv)
     int amiga = 0;
     int bk = 0;
     int nsectors_per_track = 9;
+    int revolution = 0;
 
     mfm_err = stdout;
     for (;;) {
-        c = getopt_long(argc, argv, "hVixcdvabs:", longopts, 0);
+        c = getopt_long(argc, argv, "hVixcdvabs:r:", longopts, 0);
         if (c < 0)
             break;
         switch (c) {
@@ -167,6 +172,9 @@ int main(int argc, char **argv)
             break;
         case 's':
             nsectors_per_track = strtol(optarg, 0, 0);
+            break;
+        case 'r':
+            revolution = strtol(optarg, 0, 0);
             break;
         }
     }
@@ -222,7 +230,7 @@ int main(int argc, char **argv)
 
             if (ext && strcasecmp(ext, ".scp") == 0) {
                 /* Convert SCP file into MFM format. */
-                scp_write_mfm(argv[1], fout, 0/*TODO*/);
+                scp_write_mfm(argv[1], fout, revolution);
                 break;
             }
             fin = open_input(argv[1]);

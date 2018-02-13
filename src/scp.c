@@ -302,6 +302,11 @@ static void pll_init(pll_t *pll, scp_file_t *sf, int rev)
     pll->clock = CLOCK_CENTRE;
 }
 
+/*
+ * Decode and return next bit from the flux input stream.
+ * Implement PLL in software.
+ * The routine was ported from keirf/Disk-Utilities project.
+ */
 static int pll_next_bit(pll_t *pll)
 {
     while (pll->flux < pll->clock/2) {
@@ -371,7 +376,6 @@ void scp_write_mfm(const char *name, FILE *fout, int rev)
             /* Produce empty track. */
             for (n=0; n<6400; n++)
                 mfm_write_byte(&writer, 0);
-
         } else {
             /* Decode flux data of this revolution. */
             pll_t pll;
@@ -383,7 +387,6 @@ void scp_write_mfm(const char *name, FILE *fout, int rev)
                 int halfbit = pll_next_bit(&pll);
                 mfm_write_halfbit(&writer, halfbit);
                 n++;
-
             } while (sf.iter_ptr < sf.iter_limit);
 
             /* Fill the rest of track. */
