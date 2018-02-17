@@ -43,6 +43,9 @@ int mfm_read_halfbit(mfm_reader_t *reader)
     if ((reader->halfbit & 7) == 0)
         reader->byte = getc(reader->fd);
 
+    if (reader->byte < 0)
+        return -1;
+
     ++reader->halfbit;
     reader->byte <<= 1;
     return reader->byte >> 8 & 1;
@@ -194,15 +197,20 @@ void mfm_dump(FILE *fin, int ntracks)
                 if (! a && ! b && last_b)
                     a = 1;
             }
+
             if (b < 0)
                 break;
+
             if (mfm_verbose || a != b)
                 fprintf(mfm_err, "%d", b);
             else
                 fprintf(mfm_err, b ? "#" : "_");
+
             if ((i & 63) == 63)
                 fprintf(mfm_err, "\n");
         }
         fprintf(mfm_err, "\n");
+        if (reader.fd)
+            break;
     }
 }
